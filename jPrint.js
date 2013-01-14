@@ -1,10 +1,8 @@
 /*!
-* @preserve jprint plugin
+* @preserve #jprint plugin
 * A jQuery plugin that makes it easier to print cross browser
 * Tested in FF/IE/Chrome/Safari/Opera
 * Copyright (c) 2012-* Jeremy Bass (jeremybass@cableone.net)
-* NOTE - FOR HTML5 you must have the html5shiv w/ printshiv 
-* directly or thru Modernizr or tag will not print in IE6-8
 *
 * Version 0.1
 *
@@ -22,7 +20,7 @@
 */
 
 (function($) {
-	$.jprint = $.fn.jprint = function() {
+	$.jprint = $.fn.jprint = function() {	
 		// Print a given set of elements
 		var isNode = function(o) {
 			return (typeof Node === "object" ? o instanceof Node : o
@@ -49,22 +47,21 @@
 				$this = $(this);
 			}
 		}
-		//implement the settings
+
 		var defaults = {
 			pageStyles : true,
 			mediaPrint:false,
-			stylesheets : null,
+			stylesheet : null,
 			useWindow : false,
-			skip : false,
+			skip : ".noprint",
 			iframe : true,
-			append : false,
-			prepend : false
+			append : null,
+			prepend : null
 		};
 		options = $.extend(defaults, options);
-		
-		//lets get under the right namespace
-		if (options.useWindow && $this[0] === window) $this = $(document);
-		
+		if (options.useWindow && $this[0] === window) {
+			$this = $(document);
+		}
 		//Set styles if any to find
 		var styles = $("");
 		if (options.pageStyles) styles = $("style, link");
@@ -77,52 +74,48 @@
 			});
 		}
 
-		//Make the content to print
 		var copy = $this.clone();
-		
 		copy = $("<span/>").append(copy);
-		
-		if(options.skip)copy.find(options.skip).remove();
-		
-		copy.find('head').length ? copy.find('head').append(styles.clone()) : copy.append(styles.clone());
-		
-		if(options.append)copy.append($(options.append).clone());
-		
-		if(options.prepend)copy.prepend($(options.prepend).clone());
-		
+		copy.find(options.skip).remove();
+		copy.append(styles.clone());
+		copy.append($(options.append).clone());
+		copy.prepend($(options.prepend).clone());
 		var content = copy.html();
-		if(content.indexOf('<head>')<0 && content.indexOf('<body')<0)content = '<!DOCTYPE html><html lang="en" dir="ltr"><head></head><body>'+content+'</body></html>';
 		copy.remove();
 		
-		
-		//Lets put the copy to print
 		function newWindow(content){
-			w = window.open();
-			w.document.write(content);
-			w.document.close();
-			w.print();
-			w.close();
+				w = window.open();
+				w.document.write(content);
+				w.document.close();
+				w.print();
+				w.close();	
 		}
-
+		
+		
 		var w, wdoc;
 		if (options.iframe) {
 			// Use an iframe for printing
 			try {
+				// Create a new iFrame if none is given
 				var strFrameName = ("printer-" + (new Date()).getTime());
-				$iframe = $( "<iframe name='" + strFrameName + "' src='/' style='width:0px;height:0px;position:absolute;eft:-9999em;top:-9999em' />" );
-				$iframe.appendTo( $( "body:first" ) );
+				// Create an iFrame with the new name.
+				$iframe = $( "<iframe name='" + strFrameName + "' id='" + strFrameName + "' src='/'>" );
+				$iframe.css({ width:"0px",height:"0xp",position:"absolute","z-index":999,left:"-9999em",top:"-9999em"}).appendTo( $( "body:first" ) );
 
 				w = window.frames[ strFrameName ];
 				wdoc = w.document;
+				if(content.indexOf('<body')<0)content = '<!DOCTYPE html><html lang="en" dir="ltr"><head></head><body>'+content+'</body></html>';
 				wdoc.write(content);
 				wdoc.close();
-				$iframe.load(function(){ w.focus(); w.print(); });
+				var $iframe = $("#"+strFrameName).contents();
+				w.focus();
+				w.print();
 				window.setTimeout(function() {w.close();}, 3000);
 				if ($iframe.length) {
 					setTimeout(function(){$iframe.remove();},(60 * 1000));
 				}
 			} catch (e) {
-				// fail quite and pust a backup
+				alert(e.message);
 				newWindow(content);
 			}
 		} else {
